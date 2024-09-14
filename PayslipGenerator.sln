@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.4.33205.214
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PayslipGenerator", "PayslipGenerator\PayslipGenerator.csproj", "{1C69A780-624D-47E7-A8F1-751E25D98ADB}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1C69A780-624D-47E7-A8F1-751E25D98ADB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1C69A780-624D-47E7-A8F1-751E25D98ADB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1C69A780-624D-47E7-A8F1-751E25D98ADB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1C69A780-624D-47E7-A8F1-751E25D98ADB}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {C14FC0B6-23A4-49CB-ABC7-0B16D652D053}
+	EndGlobalSection
+EndGlobal
