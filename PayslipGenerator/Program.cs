@@ -5,7 +5,7 @@ namespace PayslipGenerator
 {
     internal static class Program
     {
-        public static IConfiguration AppConfiguration { get; set; }
+        public static IConfiguration? AppConfiguration { get; set; }
 
         /// <summary>
         ///  The main entry point for the application.

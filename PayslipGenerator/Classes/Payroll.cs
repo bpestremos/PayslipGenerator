@@ -17,11 +17,8 @@ namespace PayslipGenerator.Classes
         public double TotalNet { get; set; }
         public double TotalDeduction { get; set; }
         public double TotalGross { get; set; }
+        public double SSS { get; set; }
+        public double PHIC { get; set; }
+        public double HDMF { get; set; }
     }
-
-    public class DailyRates 
-    {
-        public Dictionary<string, double> Rates { get; set; }
-    }
-
 }

@@ -15,7 +15,7 @@ namespace PayslipGenerator
     {
 
         public IConfiguration config = Program.AppConfiguration;
-
+        private bool IsGov { get; set; }
         public Form1()
         {
             InitializeComponent();
@@ -28,6 +28,9 @@ namespace PayslipGenerator
             txtOthers.KeyPress += new KeyPressEventHandler(txtNumeric_KeyPress);
             txtAdjustments.KeyPress += new KeyPressEventHandler(txtNumeric_KeyPress);
             txtWorkingDays.KeyPress += new KeyPressEventHandler(txtNumeric_KeyPress);
+            label3.Text = config["AppSettings:CompanyName"]?.ToString().ToUpper();
+            label5.Text = config["AppSettings:CompanyAddress"]?.ToString();
+
 
             ClearFields();
         }
@@ -96,7 +99,8 @@ namespace PayslipGenerator
             // Define the file path where the PDF will be saved
             var path = config["AppSettings:PayslipPath"];
             var showGovBenefits = Convert.ToBoolean(config["AppSettings:ShowGovBenefits"]);
-            string filePath = $"{path}\\{cmbEmp.SelectedItem.ToString().Replace(" ", "")}_{DateTime.Now:yyyyMMdd}.pdf";
+            IsGov = showGovBenefits;
+            string filePath = $"{path}\\{cmbEmp.SelectedItem.ToString()?.Replace(" ", "")}_{DateTime.Now:yyyyMMdd}.pdf";
 
             if (string.IsNullOrEmpty(path))
             {
@@ -104,7 +108,8 @@ namespace PayslipGenerator
                 return;
             }
 
-            Directory.CreateDirectory(Path.GetDirectoryName(filePath));
+            var dirPath = Path.GetDirectoryName(filePath);
+            Directory.CreateDirectory(dirPath ?? string.Empty);
             // Ensure the directory exists
 
             PdfDocument document = new PdfDocument();
@@ -124,9 +129,12 @@ namespace PayslipGenerator
             XFont boldFont = new XFont("Verdana", 12, XFontStyleEx.Bold);
 
 
+            var dateFrom = dateTimePicker1.Value.ToString("MMM dd");
+            var dateTo = dateTimePicker2.Value.ToString("MMM dd");
             //// PAGE TITLE
             XFont titleFont = new XFont("Verdana", 24, XFontStyleEx.Regular);
             gfx.DrawString("CONFIDENTIAL PAYSLIP", titleFont, XBrushes.Black, new XRect(185, 80, page.Width, 30), XStringFormats.CenterLeft);
+            gfx.DrawString($"Payroll Period of {dateFrom} - {dateTo}, {DateTime.Now.Year}", font, XBrushes.Black, new XRect(200, 110, page.Width, 30), XStringFormats.CenterLeft);
 
 
             // Load image (make sure the image path is correct)
@@ -171,7 +179,7 @@ namespace PayslipGenerator
 
 
             // Draw table headers
-            DrawCell(gfx, tableX, tableY, columnWidth1, rowHeight, "Period", boldFont, false, true);
+            DrawCell(gfx, tableX, tableY, columnWidth1, rowHeight, "Particulars", boldFont, false, true);
             DrawCell(gfx, tableX + columnWidth1, tableY, columnWidth2, rowHeight, "Gross", boldFont, false, true);
             DrawCell(gfx, tableX + columnWidth1 + columnWidth2, tableY, columnWidth3, rowHeight, "Deductions", boldFont, false, true);
             DrawCell(gfx, tableX + columnWidth1 + columnWidth2 + columnWidth3, tableY, columnWidth4, rowHeight, "Net", boldFont, false, true);
@@ -210,21 +218,21 @@ namespace PayslipGenerator
                 DrawCell(gfx, tableX + columnWidth1 + columnWidth2 + columnWidth3, currentY, columnWidth2, rowHeight, string.Empty, font);
 
                 currentY += rowHeight;
-                DrawCell(gfx, tableX, currentY, columnWidth1, rowHeight, "   SSS", font, true);
+                DrawCell(gfx, tableX, currentY, columnWidth1, rowHeight, "SSS   ", font, true);
                 DrawCell(gfx, tableX + columnWidth1, currentY, columnWidth2, rowHeight, string.Empty, font);
-                DrawCell(gfx, tableX + columnWidth1 + columnWidth2, currentY, columnWidth2, rowHeight, "<t3>", font);
+                DrawCell(gfx, tableX + columnWidth1 + columnWidth2, currentY, columnWidth2, rowHeight, particulars.SSS.ToString("N2"), font, true);
                 DrawCell(gfx, tableX + columnWidth1 + columnWidth2 + columnWidth3, currentY, columnWidth2, rowHeight, string.Empty, font);
 
                 currentY += rowHeight;
-                DrawCell(gfx, tableX, currentY, columnWidth1, rowHeight, "   PHIC", font, true);
+                DrawCell(gfx, tableX, currentY, columnWidth1, rowHeight, "PHIC   ", font, true);
                 DrawCell(gfx, tableX + columnWidth1, currentY, columnWidth2, rowHeight, string.Empty, font);
-                DrawCell(gfx, tableX + columnWidth1 + columnWidth2, currentY, columnWidth2, rowHeight, "<t3>", font);
+                DrawCell(gfx, tableX + columnWidth1 + columnWidth2, currentY, columnWidth2, rowHeight, particulars.PHIC.ToString("N2"), font, true);
                 DrawCell(gfx, tableX + columnWidth1 + columnWidth2 + columnWidth3, currentY, columnWidth2, rowHeight, string.Empty, font);
 
                 currentY += rowHeight;
-                DrawCell(gfx, tableX, currentY, columnWidth1, rowHeight, "   HDMF", font, true);
+                DrawCell(gfx, tableX, currentY, columnWidth1, rowHeight, "HDMF   ", font, true);
                 DrawCell(gfx, tableX + columnWidth1, currentY, columnWidth2, rowHeight, string.Empty, font);
-                DrawCell(gfx, tableX + columnWidth1 + columnWidth2, currentY, columnWidth2, rowHeight, "<t3>", font);
+                DrawCell(gfx, tableX + columnWidth1 + columnWidth2, currentY, columnWidth2, rowHeight, particulars.HDMF.ToString("N2"), font, true);
                 DrawCell(gfx, tableX + columnWidth1 + columnWidth2 + columnWidth3, currentY, columnWidth2, rowHeight, string.Empty, font);
             }
 
@@ -266,30 +274,56 @@ namespace PayslipGenerator
 
         public Payroll GetPayroll()
         {
+            // Get government contributions from config
+            double sss = Convert.ToDouble(config["AppSettings:SSS"]);
+            double hdmf = Convert.ToDouble(config["AppSettings:HDMF"]);
+            double phic = Convert.ToDouble(config["AppSettings:PHIC"]);
 
-            var asdasd = (Convert.ToDouble(txtdailyRate.Text) * Convert.ToDouble(txtDaysIn.Text)) + Convert.ToDouble(txtAdjustments.Text);
-            var qweqwe = ((Convert.ToDouble(txtAbsents.Text) * Convert.ToDouble(txtdailyRate.Text)) + Convert.ToDouble(txtOthers.Text));
+            // Get textbox inputs
+            double dailyRate = Convert.ToDouble(txtdailyRate.Text);
+            double workingDays = Convert.ToDouble(txtWorkingDays.Text);
+            double daysIn = Convert.ToDouble(txtDaysIn.Text);
+            double absents = Convert.ToDouble(txtAbsents.Text);
+            double adjustments = Convert.ToDouble(txtAdjustments.Text);
+            double others = Convert.ToDouble(txtOthers.Text);
+
+            // Calculate values
+            double basicSalary = dailyRate * workingDays;
+            double absentsDeduction = dailyRate * absents;
+            double adjustmentsTotal = dailyRate * adjustments;
+            double totalGross = basicSalary + adjustmentsTotal;
+            double totalDeduction = absentsDeduction + others;
+
+            if (IsGov)
+            {
+                totalDeduction += sss + phic + hdmf; // Add gov benefits if applicable
+            }
+
+            double totalNet = totalGross - totalDeduction;
+
             Payroll payroll = new()
             {
-                DailyRate = Convert.ToDouble(txtdailyRate.Text),
-                BasicSalary = (Convert.ToDouble(txtdailyRate.Text) * Convert.ToDouble(txtWorkingDays.Text)),
-                DaysIn = Convert.ToDouble(txtDaysIn.Text),
-                Absents = Convert.ToDouble(txtdailyRate.Text) * Convert.ToDouble(txtAbsents.Text),
-                Adjustments = Convert.ToDouble(txtdailyRate.Text) * Convert.ToDouble(txtAdjustments.Text),
-                Others = Convert.ToDouble(txtOthers.Text),
-                TotalGross = (Convert.ToDouble(txtdailyRate.Text) * Convert.ToDouble(txtWorkingDays.Text) +
-                                Convert.ToDouble(txtdailyRate.Text) * Convert.ToDouble(txtAdjustments.Text)),
-                TotalDeduction = (((Convert.ToDouble(txtAbsents.Text) * Convert.ToDouble(txtdailyRate.Text)) + Convert.ToDouble(txtOthers.Text))),
-                TotalNet = ((Convert.ToDouble(txtdailyRate.Text) * Convert.ToDouble(txtWorkingDays.Text))) -
-                            ((Convert.ToDouble(txtAbsents.Text) * Convert.ToDouble(txtdailyRate.Text)) + Convert.ToDouble(txtOthers.Text))
+                DailyRate = dailyRate,
+                BasicSalary = basicSalary,
+                DaysIn = daysIn,
+                Absents = absentsDeduction,
+                Adjustments = adjustmentsTotal,
+                Others = others,
+                TotalGross = totalGross,
+                TotalDeduction = totalDeduction,
+                TotalNet = totalNet,
+                SSS = sss,
+                HDMF = hdmf,
+                PHIC = phic
             };
 
             return payroll;
         }
 
+
         private void cmbEmp_SelectedIndexChanged(object sender, EventArgs e)
         {
-            txtdailyRate.Text = config[$"AppSettings:Rate{cmbEmp.SelectedIndex}"].ToString();
+            txtdailyRate.Text = config[$"AppSettings:Rate{cmbEmp.SelectedIndex}"]?.ToString();
 
             ClearFields();
         }
